@@ -21,7 +21,8 @@ package synapsewear
 
 import (
 	"encoding/json"
-	"regexp/syntax"
+	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,8 +30,10 @@ import (
 )
 
 const dataPrefix = "data="
-const escapedTimeFormat = "2006\\/01\\/02 15:04:05 -0700"
-const escapedTimeRegexpStr = "[[:digit:]]{4}\\/[[:digit:]]{2}\\/[[:digit:]]{2}[[:space:]]+[[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}[[:space:]]+-[[:digit:]]{4}"
+const escapedTimeFormat = `2006\/01\/02 15:04:05 -0700`
+
+// const escapedTimeRegexpStr = `[[:digit:]]{4}\/[[:digit:]]{2}\/[[:digit:]]{2}[[:space:]]+[[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}[[:space:]]+-[[:digit:]]{4}`
+const escapedTimeRegexpStr = `2018\/08\/22 19:00:00 -0400`
 
 type Upload struct {
 	DeviceUUID uuid.UUID   `json:"deviceuuid"`
@@ -49,12 +52,16 @@ type Datapoint struct {
 	DateUnix     int64     `json:"dateunix"`
 }
 
+var escapedTimeRegexp *regexp.Regexp = regexp.MustCompile(escapedTimeRegexpStr)
+
 func ParseString(s string) (Upload, error) {
 	var u Upload
 
-	s = strings.TrimPrefix(dataPrefix)
+	s = strings.TrimPrefix(s, dataPrefix)
+	fmt.Printf("s: %v", s)
 
 	s, err := scrubEscapedTime(s)
+	fmt.Printf("s: %v", s)
 
 	if err != nil {
 		return u, err
@@ -66,11 +73,13 @@ func ParseString(s string) (Upload, error) {
 }
 
 func scrubEscapedTime(s string) (string, error) {
-	escapedTimeRegexp, err := syntax.Parse(escapedTimeRegexpStr, syntax.PerlX)
 	toScrub := escapedTimeRegexp.FindAllString(s, -1)
+
+	fmt.Printf("%v matches\n", len(toScrub))
 
 	for i := range toScrub {
 		escapedTimeStr := toScrub[i]
+		fmt.Println(escapedTimeStr)
 		escapedTime, err := time.Parse(escapedTimeFormat, escapedTimeStr)
 
 		if err != nil {
